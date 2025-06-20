@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI壓力分析燈光陪伴</title>
+    <style>
+        body {
+            font-family: '微軟正黑體', 'Noto Sans TC', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #23242a 0%, #35363c 100%);
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+        .star-bg {
+            pointer-events: none;
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: 0;
+        }
+        .container {
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(135deg, #2e2f36 0%, #393a40 100%);
+            padding: 48px 24px 40px 24px;
+            border-radius: 32px;
+            box-shadow: 0 8px 32px rgba(60,80,120,0.18);
+            margin-top: 40px;
+        }
+        h1 {
+            color: #aeefff;
+            text-align: center;
+            margin: 0 0 24px 0;
+            font-size: 2.4em;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-shadow: 0 2px 8px rgba(122,140,255,0.10);
+            background: linear-gradient(45deg, #aeefff, #d6cfff, #fffbe6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            position: relative;
+        }
+        .input-group {
+            margin-bottom: 32px;
+        }
+        textarea#diaryInput {
+            width: 100%;
+            padding: 16px;
+            font-size: 1.1em;
+            border: 2px solid #3a4a5a;
+            border-radius: 16px;
+            background: #23242a;
+            color: #eaf6ff;
+            box-shadow: 0 2px 8px rgba(30,40,60,0.10);
+            margin-bottom: 16px;
+            resize: vertical;
+            transition: border 0.2s, box-shadow 0.2s, background 0.2s;
+        }
+        textarea#diaryInput:focus {
+            border: 2px solid #aeefff;
+            box-shadow: 0 4px 16px rgba(174,239,255,0.13);
+            outline: none;
+            background: #26282f;
+        }
+        button:not(#arduinoBtn) {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(90deg, #3a4a5a 0%, #5a6b8c 100%);
+            color: #aeefff;
+            border: none;
+            border-radius: 16px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(30,40,60,0.10);
+            transition: background 0.2s, color 0.2s, box-shadow 0.2s, transform 0.1s;
+        }
+        button:not(#arduinoBtn):hover {
+            background: linear-gradient(90deg, #5a6b8c 0%, #3a4a5a 100%);
+            color: #fffbe6;
+            box-shadow: 0 4px 16px rgba(174,239,255,0.18);
+            transform: scale(1.03);
+        }
+        #result {
+            margin-top: 36px;
+            padding: 28px 20px;
+            border: none;
+            border-radius: 20px;
+            white-space: pre-wrap;
+            display: none;
+            background: linear-gradient(135deg, #23242a 0%, #35363c 100%);
+            box-shadow: 0 2px 16px rgba(30,40,60,0.13);
+            font-size: 1.13em;
+            line-height: 1.7;
+            position: relative;
+            color: #eaf6ff;
+            animation: fadeIn 0.7s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .light-zone {
+            margin: 36px auto 0 auto;
+            width: 130px;
+            height: 130px;
+            border-radius: 50%;
+            box-shadow: 0 0 80px 24px #aeefff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #23242a 0%, #aeefff 100%);
+            transition: background 0.5s, box-shadow 0.5s;
+            animation: fadeIn 0.7s;
+        }
+        .loading {
+            text-align: center;
+            display: none;
+            font-size: 1.2em;
+            color: #aeefff;
+            margin: 24px 0 0 0;
+            letter-spacing: 1px;
+            animation: fadeIn 0.7s;
+        }
+        .error-message {
+            color: #ffb6b6;
+            text-align: center;
+            padding: 20px;
+            background: rgba(255, 107, 107, 0.08);
+            border-radius: 14px;
+            margin: 14px 0;
+        }
+        #arduinoBtn {
+            position: fixed;
+            top: 18px;
+            left: 18px;
+            z-index: 1000;
+            background: #23242a;
+            color: #aeefff;
+            border: 2px solid #aeefff;
+            border-radius: 12px;
+            padding: 10px 22px;
+            font-size: 1em;
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(122,140,255,0.08);
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s;
+        }
+        #arduinoBtn:hover {
+            background: #aeefff;
+            color: #23242a;
+        }
+        #arduinoBtnTopRight {
+            position: fixed;
+            top: 18px;
+            right: 18px;
+            z-index: 1000;
+            background: #23242a;
+            color: #aeefff;
+            border: 2px solid #aeefff;
+            border-radius: 12px;
+            padding: 10px 22px;
+            font-size: 1em;
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(122,140,255,0.08);
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s;
+        }
+        #arduinoBtnTopRight:hover {
+            background: #aeefff;
+            color: #23242a;
+        }
+    </style>
+</head>
+<body>
+    <canvas class="star-bg" id="starBg"></canvas>
+    <div class="container">
+        <h1>💡 AI壓力分析燈光陪伴 💡</h1>
+        <div class="input-group">
+            <textarea id="diaryInput" rows="8" placeholder="請輸入你的日記或心情..." style="width:100%;padding:10px;font-size:16px;border:2px solid #ffd8d8;border-radius:5px;"></textarea>
+            <button onclick="analyzeStress()">分析壓力</button>
+        </div>
+        <div class="loading" id="loading">AI 分析中...</div>
+        <div id="lightZone" class="light-zone" style="display:none;"></div>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        const GEMINI_API_KEY = 'AIzaSyCK4BvP93-uppDkJJUMeHCud30PGYfn9Ic';
+
+        function getLightColorAndSpeed(stress) {
+            // 根據壓力值回傳顏色與動畫速度
+            if (stress >= 80) {
+                return { color: '#ff6b6b', speed: '0.8s', desc: '高壓力，建議深呼吸與放鬆' };
+            } else if (stress >= 50) {
+                return { color: '#ffd86b', speed: '1.2s', desc: '中度壓力，適合休息片刻' };
+            } else {
+                return { color: '#6bcfff', speed: '2s', desc: '低壓力，狀態良好' };
+            }
+        }
+
+        // 強化版燈光節奏控制
+        function startLightRhythm(stress) {
+            // 不顯示網頁端燈光動畫，僅靜態顯示
+            const lightZone = document.getElementById('lightZone');
+            if (window._lightRhythmStop) window._lightRhythmStop();
+            window._lightRhythmStop = () => {};
+            lightZone.style.filter = 'brightness(1)';
+        }
+
+        function getLightRhythm(stress) {
+            // 根據壓力值決定模式字串
+            if (stress <= 30) {
+                return { rhythm: '呼吸', color: '', desc: '', show: false };
+            } else if (stress <= 60) {
+                return { rhythm: '中速閃爍', color: '', desc: '', show: false };
+            } else {
+                return { rhythm: '急閃+停頓', color: '', desc: '', show: false };
+            }
+        }
+
+        // Web Serial API: 傳送節奏模式與壓力值給 Arduino
+        let arduinoPort = null;
+        let arduinoWriter = null;
+        async function connectArduino() {
+            if (!('serial' in navigator)) {
+                alert('此瀏覽器不支援 Web Serial API');
+                return;
+            }
+            try {
+                arduinoPort = await navigator.serial.requestPort();
+                await arduinoPort.open({ baudRate: 9600 });
+                arduinoWriter = arduinoPort.writable.getWriter();
+                alert('已連接 Arduino！');
+            } catch (e) {
+                alert('連接 Arduino 失敗：' + e);
+            }
+        }
+        async function sendToArduino(mode, stress) {
+            if (!arduinoWriter) return;
+            const msg = `${mode},${stress}\n`;
+            const data = new TextEncoder().encode(msg);
+            await arduinoWriter.write(data);
+        }
+
+        async function analyzeStress() {
+            const diary = document.getElementById('diaryInput').value.trim();
+            const loading = document.getElementById('loading');
+            const result = document.getElementById('result');
+            const lightZone = document.getElementById('lightZone');
+            if (!diary) {
+                alert('請輸入你的日記內容！');
+                return;
+            }
+            loading.style.display = 'block';
+            result.style.display = 'none';
+            lightZone.style.display = 'none';
+            if (window._lightRhythmStop) window._lightRhythmStop();
+
+            try {
+                const prompt = `請根據以下日記內容，分析壓力值（0~100，數字愈高代表壓力愈大），只需回覆：\n壓力值：<數字>\n簡短說明：<一句話說明>。\n日記內容：${diary}`;
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{ text: prompt }]
+                        }]
+                    })
+                });
+                const data = await response.json();
+                let aiText = '';
+                if (data.candidates && data.candidates[0].content.parts[0].text) {
+                    aiText = data.candidates[0].content.parts[0].text;
+                } else {
+                    throw new Error('AI 無法分析壓力');
+                }
+
+                // 解析壓力值
+                const match = aiText.match(/壓力值：([0-9]{1,3})/);
+                let stress = 0;
+                if (match) {
+                    stress = parseInt(match[1], 10);
+                } else {
+                    throw new Error('AI 回傳格式錯誤');
+                }
+                const { color, rhythm, desc, show } = getLightRhythm(stress);
+                // 不顯示圓形與節奏
+                lightZone.style.display = 'none';
+                // 傳送給 Arduino
+                await sendToArduino(rhythm, stress);
+
+                // 顯示壓力說明
+                // 解析AI說明
+                let descText = '';
+                const descMatch = aiText.match(/簡短說明：(.+)/);
+                if (descMatch) {
+                    descText = descMatch[1].trim();
+                }
+                let resultHtml = `<b>壓力值：</b>${stress}<br><b>說明：</b>${descText}`;
+                result.innerHTML = resultHtml;
+                result.style.display = 'block';
+            } catch (error) {
+                result.textContent = `發生錯誤：${error.message}`;
+                result.style.display = 'block';
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        // 星空動畫
+        function drawStars() {
+            const canvas = document.getElementById('starBg');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+            canvas.width = w;
+            canvas.height = h;
+            ctx.clearRect(0, 0, w, h);
+            for (let i = 0; i < 90; i++) {
+                const x = Math.random() * w;
+                const y = Math.random() * h;
+                const r = Math.random() * 0.7 + 0.3;
+                const alpha = Math.random() * 0.5 + 0.5;
+                ctx.beginPath();
+                ctx.arc(x, y, r, 0, 2 * Math.PI);
+                ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+                ctx.shadowColor = '#fff';
+                ctx.shadowBlur = 2;
+                ctx.fill();
+            }
+        }
+        window.addEventListener('resize', drawStars);
+        window.addEventListener('DOMContentLoaded', drawStars);
+    </script>
+    <button id="arduinoBtn" onclick="connectArduino()">連接 Arduino</button>
+</body>
+</html>
